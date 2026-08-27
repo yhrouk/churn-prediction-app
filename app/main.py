@@ -1,5 +1,6 @@
 from flask import Flask,request
 from flask_restx import Api,Resource,fields
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from config import DevConfig
 from models import User
 from exts import db, jwt
