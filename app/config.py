@@ -1,8 +1,10 @@
 from decouple import config
 import os
-
+#get the directory where main.py
 BASE_DIR= os.path.dirname(os.path.realpath(__file__))
 print(os.path.realpath(__file__))
+# Navigate up one directory to project root: .../churn-prediction-app/metrics.json
+METRICS_PATH = os.path.join(BASE_DIR, "..", "metrics.json")
 
 class Config:
   SECRET_KEY = config('SECRET_KEY')

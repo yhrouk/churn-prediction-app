@@ -6,6 +6,8 @@ from models import User
 from exts import db, jwt
 from services import predict_churn
 import json
+import os
+from config import METRICS_PATH
 
 
 app = Flask(__name__)
@@ -115,7 +117,9 @@ class MetricsResource(Resource):
     @jwt_required()
     def get(self):
         """Get precomputed model performance metrics across thresholds."""
-        with open("../metrics.json", "r") as f:
+        if not os.path.exists(METRICS_PATH):
+            return {"error": "metrics.json not found. Run model training script first."}, 404
+        with open("./metrics.json", "r") as f:
             metrics_data = json.load(f)
         return metrics_data, 200
 
