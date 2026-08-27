@@ -4,6 +4,8 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from config import DevConfig
 from models import User
 from exts import db, jwt
+from services import predict_churn
+import json
 
 
 app = Flask(__name__)
@@ -11,8 +13,23 @@ app.config.from_object(DevConfig)
 db.init_app(app)
 jwt.init_app(app)
 
-api = Api(app,doc='/docs')
+# Configure Swagger with JWT authorization support
+authorizations = {
+    'Bearer': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization',
+        'description': "Type 'Bearer <your_token>'"
+    }
+}
 
+api = Api(
+    app, 
+    doc='/docs', 
+    title="Churn Prediction API", 
+    authorizations=authorizations,
+    security='Bearer'
+)
 #model (serializer)
 signup_model = api.model(
     "SignUp",
@@ -27,6 +44,17 @@ login_model = api.model(
     {
         "username": fields.String(required=True, description="Username"),
         "password": fields.String(required=True, description="Password")
+    }
+)
+# Request schema for prediction input
+predict_model = api.model(
+    "PredictInput",
+    {
+        "Tenure Months": fields.Integer(required=True, example=12),
+        "Monthly Charges": fields.Float(required=True, example=70.35),
+        "Total Charges": fields.Float(required=True, example=844.20),
+        "Contract": fields.String(required=True, example="Month-to-month"),
+        "Payment Method": fields.String(required=True, example="Electronic check")
     }
 )
 # ------------------ Endpoints ------
@@ -71,6 +99,25 @@ class LoginResource(Resource):
             return {"access_token": access_token}, 200
 
         return {"message": "Invalid username or password"}, 401
+
+@api.route('/predict')
+class PredictResource(Resource):
+    @jwt_required()
+    @api.expect(predict_model)
+    def post(self):
+        """Predict customer churn using saved Random Forest model."""
+        data = request.get_json()
+        result = predict_churn(data)
+        return result, 200
+
+@api.route('/metrics')
+class MetricsResource(Resource):
+    @jwt_required()
+    def get(self):
+        """Get precomputed model performance metrics across thresholds."""
+        with open("../metrics.json", "r") as f:
+            metrics_data = json.load(f)
+        return metrics_data, 200
 
 @app.shell_context_processor
 def make_shell_context():
