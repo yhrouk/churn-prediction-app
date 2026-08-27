@@ -12,6 +12,7 @@ from sklearn.metrics import (
     confusion_matrix
 )
 import joblib
+import json
 
 file_path = "./data/customer_churn.xlsx"
 df = pd.read_excel(file_path,engine="openpyxl")
@@ -59,19 +60,17 @@ model.fit(X_train, y_train)
 y_proba = model.predict_proba(X_test)[:, 1]
 thresholds = [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
 
+metrics = {}
 for threshold in thresholds:
-    y_pred_threshold = (y_proba >= threshold).astype(int)
-
-    precision = precision_score(y_test, y_pred_threshold)
-    recall = recall_score(y_test, y_pred_threshold)
-    f1 = f1_score(y_test, y_pred_threshold)
-
-    print(
-        f"Threshold={threshold:.2f} | "
-        f"Precision={precision:.3f} | "
-        f"Recall={recall:.3f} | "
-        f"F1={f1:.3f}"
-    )
-
+    y_pred = (y_proba >= threshold).astype(int)
+    metrics[f"threshold_{threshold:.2f}"] = {
+        "precision": round(precision_score(y_test, y_pred), 3),
+        "recall": round(recall_score(y_test, y_pred), 3),
+        "f1": round(f1_score(y_test, y_pred), 3)
+    }
+# Save trained artifacts to project root
 joblib.dump(model, "churn_model.pkl")
 joblib.dump(X_encoded.columns.tolist(), "model_columns.pkl")
+
+with open("metrics.json", "w") as f:
+    json.dump(metrics, f,indent = 4)
