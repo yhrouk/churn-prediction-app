@@ -8,12 +8,15 @@ from services import predict_churn
 import json
 import os
 from config import METRICS_PATH
+from flask_cors import CORS
 
 
 app = Flask(__name__)
 app.config.from_object(DevConfig)
 db.init_app(app)
 jwt.init_app(app)
+# Enable CORS for all routes (allows React dev server at localhost:5173)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Configure Swagger with JWT authorization support
 authorizations = {
