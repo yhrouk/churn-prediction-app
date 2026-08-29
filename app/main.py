@@ -2,7 +2,7 @@ from flask import Flask,request
 from flask_restx import Api,Resource,fields
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from config import DevConfig
-from models import User
+from models.User import User
 from exts import db, jwt
 from services import predict_churn
 import json
@@ -63,11 +63,6 @@ predict_model = api.model(
     }
 )
 # ------------------ Endpoints ------
-@api.route('/hello')
-class HelloResource(Resource):
-  def get(self):
-    return {"message":"Hello World"}
-
 @api.route('/signup')
 class SignUpResource(Resource):
     @api.expect(signup_model)
@@ -112,8 +107,39 @@ class PredictResource(Resource):
     def post(self):
         """Predict customer churn using saved Random Forest model."""
         data = request.get_json()
-        result = predict_churn(data)
-        return result, 200
+
+        if not data:
+            return {'message': 'Invalid request payload'}, 400
+
+        # Map snake_case frontend keys to match model DataFrame expectations
+        model_input = {
+            'tenure': data.get('tenure'),
+            'Monthly Charges': data.get('monthly_charges'),
+            'Contract': data.get('contract')
+        }
+
+        try:
+            # 1. Execute inference function
+            result = predict_churn(model_input)
+            prob = result["churn_probability"]
+
+            # 2. Determine risk tier
+            if prob >= 0.7:
+                risk_level = 'HIGH'
+            elif prob >= 0.3:
+                risk_level = 'MEDIUM'
+            else:
+                risk_level = 'LOW'
+
+            # 3. Return keys matching React PredictResponse interface
+            return {
+                'probability': prob,
+                'churn': bool(result["churn_prediction"]),
+                'risk_level': risk_level
+            }, 200
+
+        except Exception as e:
+            return {'message': f'Prediction engine error: {str(e)}'}, 500
 
 @api.route('/metrics')
 class MetricsResource(Resource):
@@ -125,6 +151,13 @@ class MetricsResource(Resource):
         with open("./metrics.json", "r") as f:
             metrics_data = json.load(f)
         return metrics_data, 200
+
+@api.route('/about')
+class UserProfile(Resource):
+    @jwt_required()
+    def get(self):
+        current_user = get_jwt_identity()
+        return {"username": current_user}, 200
 
 @app.shell_context_processor
 def make_shell_context():
