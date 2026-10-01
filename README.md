@@ -75,18 +75,6 @@ If the project uses a separate Python service, start it with the command documen
 3. Enter the required customer information.
 4. Submit the information to receive a churn prediction.
 
-## Project Language Composition
-
-According to GitHub's language breakdown, the repository is composed of:
-
-| Language | Percentage |
-| --- | ---: |
-| TypeScript | 66.7% |
-| Python | 25% |
-| CSS | 6% |
-| JavaScript | 1.4% |
-| HTML | 0.9% |
-
 ## Contributing
 
 Contributions are welcome. To contribute:
